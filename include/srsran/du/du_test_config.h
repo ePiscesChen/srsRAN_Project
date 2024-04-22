@@ -41,6 +41,7 @@ struct du_test_config {
     unsigned           i_1_1;
     optional<unsigned> i_1_3;
     unsigned           i_2;
+    unsigned           buffer_size;
   };
 
   /// \brief Creation of a phantom UE for testing purposes.
