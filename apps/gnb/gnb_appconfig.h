@@ -915,6 +915,7 @@ struct test_mode_ue_appconfig {
   unsigned i_1_1 = 0;
   unsigned i_1_3 = 0;
   unsigned i_2   = 0;
+  unsigned buffer_size = 100000;
 };
 
 /// gNB app Test Mode configuration.

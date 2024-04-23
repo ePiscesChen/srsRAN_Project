@@ -1701,6 +1701,12 @@ static void configure_cli11_test_ue_mode_args(CLI::App& app, test_mode_ue_appcon
          "Precoder Matrix codebook index \"i_2\" to be forwarded to test UE, in the case of more than 2 antennas.")
       ->capture_default_str()
       ->check(CLI::Range(0, 3));
+  app.add_option(
+          "--buffer_size",
+          test_params.buffer_size,
+          "used to control DL buffer size")
+      ->capture_default_str()
+      ->check(CLI::Range(0,10000000));
 }
 
 static void configure_cli11_test_mode_args(CLI::App& app, test_mode_appconfig& test_params)
