@@ -26,6 +26,7 @@
 #include "srsran/mac/mac.h"
 #include "srsran/mac/mac_cell_result.h"
 #include <unordered_map>
+static const unsigned TEST_UE_DL_BUFFER_STATE_UPDATE_SIZE = 1000000;
 
 namespace srsran {
 
@@ -189,6 +190,44 @@ private:
   test_ue_info_manager& ue_info_mgr;
 };
 
+class test_mode_buffer_size{
+public:
+  virtual ~test_mode_buffer_size() = default;
+  virtual unsigned get_buffer_size() = 0;
+};
+
+class static_test_mode : public test_mode_buffer_size {
+public:
+  static_test_mode(unsigned _static_size) : static_buffer_size(_static_size){}
+  ~static_test_mode() {}
+  unsigned get_buffer_size() override {
+    return static_buffer_size;
+  }
+private:
+  unsigned static_buffer_size;
+};
+
+class range_test_mode : public test_mode_buffer_size {
+public:
+  range_test_mode(srs_du::du_test_config::test_ue_config _test_ue):
+  test_ue(_test_ue), interval_counter(0){
+    current = test_ue.min_buffer_size;
+  }
+  ~range_test_mode() {}
+  unsigned get_buffer_size() override {
+    ++interval_counter;
+    if(interval_counter == test_ue.buffer_interval && 
+      current + test_ue.buffer_step <= test_ue.max_buffer_size){
+      current += test_ue.buffer_step;
+    }
+    return current;
+  }
+private:
+  srs_du::du_test_config::test_ue_config test_ue;
+  unsigned interval_counter,current;
+};
+// TODO: trace mode
+
 class mac_test_mode_adapter final : public mac_interface,
                                     public mac_ue_control_information_handler,
                                     public mac_ue_configurator,
@@ -253,6 +292,7 @@ private:
   std::vector<std::unique_ptr<mac_test_mode_cell_adapter>> cell_info_handler;
 
   test_ue_info_manager ue_info_mgr;
+  std::shared_ptr<test_mode_buffer_size> buffer_size_container;
 };
 
 } // namespace srsran
