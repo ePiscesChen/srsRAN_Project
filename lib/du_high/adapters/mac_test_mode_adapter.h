@@ -26,6 +26,8 @@
 #include "srsran/mac/mac.h"
 #include "srsran/mac/mac_cell_result.h"
 #include <unordered_map>
+#include <chrono>
+#include <math.h>
 static const unsigned TEST_UE_DL_BUFFER_STATE_UPDATE_SIZE = 1000000;
 
 namespace srsran {
@@ -210,21 +212,31 @@ private:
 class range_test_mode : public test_mode_buffer_size {
 public:
   range_test_mode(srs_du::du_test_config::test_ue_config _test_ue):
-  test_ue(_test_ue), interval_counter(0){
-    current = test_ue.min_buffer_size;
+  test_ue(_test_ue){
+    min_buffer_size = test_ue.min_buffer_size;
+    max_buffer_size = test_ue.max_buffer_size;
+    buffer_interval = test_ue.buffer_interval;
+    buffer_step = test_ue.buffer_step;
+    // start_time = std::chrono::system_clock::now();
   }
   ~range_test_mode() {}
+  unsigned min(unsigned x, unsigned y) { return x < y ? x : y; }
   unsigned get_buffer_size() override {
-    ++interval_counter;
-    if(interval_counter == test_ue.buffer_interval && 
-      current + test_ue.buffer_step <= test_ue.max_buffer_size){
-      current += test_ue.buffer_step;
+    if(first_called){
+      start_time = std::chrono::system_clock::now();
+      first_called = false;
+      return min_buffer_size;
     }
-    return current;
+    std::chrono::system_clock::time_point current = std::chrono::system_clock::now();
+    std::chrono::duration<unsigned> running_duration = std::chrono::duration_cast<std::chrono::duration<unsigned>>(current - start_time);
+    return min(max_buffer_size,
+               min_buffer_size +  running_duration.count() / buffer_interval * buffer_step);
   }
 private:
   srs_du::du_test_config::test_ue_config test_ue;
-  unsigned interval_counter,current;
+  unsigned min_buffer_size, max_buffer_size, buffer_interval, buffer_step;
+  std::chrono::system_clock::time_point start_time;
+  bool first_called = true;
 };
 // TODO: trace mode
 

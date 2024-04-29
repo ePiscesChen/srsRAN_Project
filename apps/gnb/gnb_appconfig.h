@@ -917,10 +917,10 @@ struct test_mode_ue_appconfig {
   unsigned i_2   = 0;
   std::string working_mode = "static";
   unsigned static_buffer_size = 10000000;
-  unsigned min_buffer_size = 10000000;
-  unsigned max_buffer_size = 10000000;
-  unsigned buffer_step = 100;
-  unsigned buffer_interval = 5;
+  unsigned min_buffer_size = 10000;
+  unsigned max_buffer_size = 20000;
+  unsigned buffer_step = 1000;
+  unsigned buffer_interval = 2;
 };
 
 /// gNB app Test Mode configuration.
