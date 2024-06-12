@@ -1665,7 +1665,7 @@ static void configure_cli11_test_ue_mode_args(CLI::App& app, test_mode_ue_appcon
     if (value == "static" || value == "range" || value == "trace") {
       return {};
     }
-    return "Mode not supported. Accepted values [static,range,trace]";
+    return "Invalid mode. Accepted values [static,range,trace]";
   };
   
   app.add_option("--rnti", test_params.rnti, "C-RNTI (0x0 if not configured)")
@@ -1714,6 +1714,11 @@ static void configure_cli11_test_ue_mode_args(CLI::App& app, test_mode_ue_appcon
           "working mode")
       ->capture_default_str()
       ->check(mode_check);
+  app.add_option<std::string>(
+          "--path",
+          test_params.path,
+          "path")
+      ->capture_default_str();
   app.add_option(
           "--static_buffer_size",
           test_params.static_buffer_size,

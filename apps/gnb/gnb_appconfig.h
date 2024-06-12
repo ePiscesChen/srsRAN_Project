@@ -916,7 +916,8 @@ struct test_mode_ue_appconfig {
   unsigned i_1_3 = 0;
   unsigned i_2   = 0;
   std::string working_mode = "static";
-  unsigned static_buffer_size = 10000000;
+  std::string path;
+  double static_buffer_size = 10000000;
   unsigned min_buffer_size = 10000;
   unsigned max_buffer_size = 20000;
   unsigned buffer_step = 1000;

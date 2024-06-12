@@ -527,14 +527,15 @@ mac_test_mode_adapter::mac_test_mode_adapter(const srs_du::du_test_config::test_
   phy_notifier(std::make_unique<phy_test_mode_adapter>(phy_notifier_)),
   ue_info_mgr(test_ue.rnti, test_ue.nof_ues)
 {
-  //fmt::print("test_ue.buffer_size={}\n",test_ue.buffer_size);
   if(test_ue.working_mode == "static"){
     buffer_size_container = std::make_shared<static_test_mode>(test_ue.static_buffer_size);
   }
   else if (test_ue.working_mode == "range"){
     buffer_size_container = std::make_shared<range_test_mode>(test_ue);
   }
-  // TODO: trace mode
+  else if (test_ue.working_mode == "trace"){
+    buffer_size_container = std::make_shared<trace_test_mode>(test_ue.path);
+  }
 }
 
 mac_test_mode_adapter::~mac_test_mode_adapter() = default;
@@ -552,7 +553,7 @@ void mac_test_mode_adapter::add_cell(const mac_cell_creation_request& cell_cfg)
   // Create the cell in the MAC test mode.
   auto func_dl_bs_push = [this](rnti_t rnti) {
     get_ue_control_info_handler().handle_dl_buffer_state_update(
-        {ue_info_mgr.rnti_to_du_ue_idx(rnti), lcid_t::LCID_SRB1, test_ue.min_buffer_size});
+        {ue_info_mgr.rnti_to_du_ue_idx(rnti), lcid_t::LCID_SRB1, unsigned(buffer_size_container->get_buffer_size())});
   };
   auto new_cell =
       std::make_unique<mac_test_mode_cell_adapter>(test_ue,
@@ -599,7 +600,7 @@ void mac_test_mode_adapter::handle_dl_buffer_state_update(const mac_dl_buffer_st
   if (ue_info_mgr.is_test_ue(dl_bs.ue_index) and test_ue.pdsch_active and dl_bs.lcid != LCID_SRB0) {
     // It is the test UE. Set a positive DL buffer state if PDSCH is set to "activated".
     dl_bs_copy.bs = this->buffer_size_container->get_buffer_size();
-    // fmt::print("dl_bs_copy.bs={}\n",dl_bs_copy.bs);
+    fmt::print("dl_bs_copy.bs={}\n",dl_bs_copy.bs);
   }
   mac_adapted->get_ue_control_info_handler().handle_dl_buffer_state_update(dl_bs_copy);
 }

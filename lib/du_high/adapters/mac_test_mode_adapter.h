@@ -27,6 +27,13 @@
 #include "srsran/mac/mac_cell_result.h"
 #include <unordered_map>
 #include <chrono>
+#include <istream>
+#include <streambuf>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <string>
+#include <stdlib.h>
 #include <math.h>
 static const unsigned TEST_UE_DL_BUFFER_STATE_UPDATE_SIZE = 1000000;
 
@@ -195,18 +202,18 @@ private:
 class test_mode_buffer_size{
 public:
   virtual ~test_mode_buffer_size() = default;
-  virtual unsigned get_buffer_size() = 0;
+  virtual double get_buffer_size() = 0;
 };
 
 class static_test_mode : public test_mode_buffer_size {
 public:
-  static_test_mode(unsigned _static_size) : static_buffer_size(_static_size){}
+  static_test_mode(double _static_size = 0) : static_buffer_size(_static_size){}
   ~static_test_mode() {}
-  unsigned get_buffer_size() override {
+  double get_buffer_size() override {
     return static_buffer_size;
   }
 private:
-  unsigned static_buffer_size;
+  double static_buffer_size;
 };
 
 class range_test_mode : public test_mode_buffer_size {
@@ -221,7 +228,7 @@ public:
   }
   ~range_test_mode() {}
   unsigned min(unsigned x, unsigned y) { return x < y ? x : y; }
-  unsigned get_buffer_size() override {
+  double get_buffer_size() override {
     if(first_called){
       start_time = std::chrono::system_clock::now();
       first_called = false;
@@ -238,7 +245,53 @@ private:
   std::chrono::system_clock::time_point start_time;
   bool first_called = true;
 };
-// TODO: trace mode
+
+class trace_test_mode : public test_mode_buffer_size{
+public:
+  trace_test_mode(std::string CSV_filename){
+    std::ifstream csv_data(CSV_filename, std::ios::in);
+    std::string line;
+    if (!csv_data.is_open()) {
+      std::exit(1);
+    }
+    std::istringstream sin;
+    std::string word;
+    std::getline(csv_data, line);
+    int turn = 0;
+    while (std::getline(csv_data, line)) {
+        sin.clear();
+        sin.str(line);
+        while (std::getline(sin, word, ',')) {
+            if(turn == 1){
+                dl_brate_table.push_back(stod(word));
+            }
+            turn = (turn + 1) % 4;
+        }
+    }
+    csv_data.close();
+    counter = 0;
+    total_num = dl_brate_table.size();
+  }
+  ~trace_test_mode() {}
+
+  double get_buffer_size() override {
+    double ret = 7.537320046522576e-05 * dl_brate_table[counter] + 539.8745777874028;
+    if(first_called){
+      start_time = std::chrono::system_clock::now();
+      first_called = false;
+    }
+    std::chrono::system_clock::time_point current = std::chrono::system_clock::now();
+    std::chrono::duration<unsigned> running_duration = std::chrono::duration_cast<std::chrono::duration<unsigned>>(current - start_time);
+    counter = (running_duration.count()) % total_num;
+    return ret;
+  }
+private:
+  std::vector<double> dl_brate_table;
+  unsigned counter;
+  unsigned total_num;
+  std::chrono::system_clock::time_point start_time;
+  bool first_called = true;
+};
 
 class mac_test_mode_adapter final : public mac_interface,
                                     public mac_ue_control_information_handler,

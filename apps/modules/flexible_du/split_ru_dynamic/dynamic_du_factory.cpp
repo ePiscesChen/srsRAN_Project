@@ -214,6 +214,7 @@ std::vector<std::unique_ptr<du>> srsran::make_gnb_dus(const gnb_appconfig&      
                                                  gnb_cfg.test_mode_cfg.test_ue.i_1_3,
                                                  gnb_cfg.test_mode_cfg.test_ue.i_2,
                                                  gnb_cfg.test_mode_cfg.test_ue.working_mode,
+                                                 gnb_cfg.test_mode_cfg.test_ue.path,
                                                  gnb_cfg.test_mode_cfg.test_ue.static_buffer_size,
                                                  gnb_cfg.test_mode_cfg.test_ue.min_buffer_size,
                                                  gnb_cfg.test_mode_cfg.test_ue.max_buffer_size,

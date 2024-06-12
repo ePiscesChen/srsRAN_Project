@@ -42,7 +42,8 @@ struct du_test_config {
     optional<unsigned> i_1_3;
     unsigned           i_2;
     std::string        working_mode;
-    unsigned           static_buffer_size;
+    std::string        path;
+    double             static_buffer_size;
     unsigned           min_buffer_size;
     unsigned           max_buffer_size;
     unsigned           buffer_step;
