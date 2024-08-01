@@ -55,10 +55,20 @@ public:
   /// Determines whether the caller is inside the pool.
   bool is_in_thread_pool() const;
 
+  unsigned update_id();
+
+  unsigned get_id(){
+    return this->id;
+  }
+
   std::string pool_name;
+
+  std::vector<bool> is_yield;
 
   // List of workers belonging to the worker pool.
   std::vector<unique_thread> worker_threads;
+
+  int id = 0;
 };
 
 class base_priority_task_queue
@@ -180,6 +190,8 @@ public:
     detail::base_task_queue<QueuePolicy>(qsize_, wait_sleep_time),
     detail::base_worker_pool(nof_workers_, std::move(worker_pool_name), create_pop_loop_task(), prio, cpu_masks)
   {
+    //fmt::print("actual worker of {} is {}, yield buffer is {}\n", worker_pool_name, actual_workers, is_yield.size());
+    //fmt::print("\n ==================== \n task_worker_pool <{}> is being created with sleep time ={}\n ==================== \n", worker_pool_name, std::chrono::duration_cast<std::chrono::microseconds>(wait_sleep_time).count());
   }
   ~task_worker_pool();
 

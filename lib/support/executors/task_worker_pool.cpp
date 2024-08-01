@@ -22,6 +22,9 @@
 
 #include "srsran/support/executors/task_worker_pool.h"
 #include <future>
+#include <mutex>
+
+std::mutex incre_mutex;
 
 using namespace srsran;
 
@@ -39,23 +42,52 @@ detail::base_worker_pool::base_worker_pool(unsigned                             
     report_error_if_not(cpu_masks.size() == nof_workers_, "Wrong array of CPU masks provided");
   }
 
+  unsigned actual_workers = nof_workers_ / 2 ? nof_workers_ / 2 : 1;
+  for(unsigned i = 0; i < nof_workers_; i++){
+    is_yield.push_back(!(i >= actual_workers && (worker_pool_name.find("up_phy_dl") != std::string::npos|| worker_pool_name.find("pusch") != std::string::npos)));
+    //fmt::print("yield flag of {}#{} is {}\n", worker_pool_name, i, is_yield[i]);
+  }
   // Task dispatched to workers of the pool.
   for (unsigned i = 0; i != nof_workers_; ++i) {
+    // this->update_id();
     if (cpu_masks.empty()) {
       worker_threads.emplace_back(fmt::format("{}#{}", worker_pool_name, i), prio, run_tasks_job);
     } else {
       // Check whether a single mask for all workers should be used.
       os_sched_affinity_bitmask cpu_mask = (cpu_masks.size() == 1) ? cpu_masks[0] : cpu_masks[i];
       worker_threads.emplace_back(fmt::format("{}#{}", worker_pool_name, i), prio, cpu_mask, run_tasks_job);
+      //fmt::print("\nworking thread {}#{} is being emplaced\n", worker_pool_name, i);
     }
   }
 }
+
+//   unsigned int i = this->get_id();
+//   while(i < nof_workers_) {
+//     // this->update_id();
+//     if (cpu_masks.empty()) {
+//       worker_threads.emplace_back(fmt::format("{}#{}", worker_pool_name, i), prio, run_tasks_job);
+//     } else {
+//       // Check whether a single mask for all workers should be used.
+//       os_sched_affinity_bitmask cpu_mask = (cpu_masks.size() == 1) ? cpu_masks[0] : cpu_masks[i];
+//       worker_threads.emplace_back(fmt::format("{}#{}", worker_pool_name, i), prio, cpu_mask, run_tasks_job);
+//       fmt::print("\nworking thread {}#{} is being emplaced\n", worker_pool_name, i);
+//     }
+//     i = this->get_id();
+//   }
+// }
 
 bool detail::base_worker_pool::is_in_thread_pool() const
 {
   return std::any_of(worker_threads.begin(),
                      worker_threads.end(),
                      [id = std::this_thread::get_id()](const unique_thread& t) { return t.get_id() == id; });
+}
+
+unsigned detail::base_worker_pool::update_id() {
+  std::lock_guard<std::mutex> lock(incre_mutex);
+  id++;
+  //fmt::print("update_id is called by <{}>, the current id is ---> {}\n", this->pool_name, id); 
+  return id;
 }
 
 // //////////////////////////
@@ -180,6 +212,13 @@ template <concurrent_queue_policy QueuePolicy>
 std::function<void()> task_worker_pool<QueuePolicy>::create_pop_loop_task()
 {
   return [this]() {
+    const int index = this->update_id();
+    fmt::print("Pool name:{} - ID in pop loop task is {}, yield state is {}\n", this->pool_name, index, this->is_yield[index - 1]);
+    while(!is_yield[index - 1]){
+      std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
+    // this->update_id();
+    // fmt::print("Pool name:{} - ID in pop loop task is {}\n", this->pool_name, index);
     unique_task job;
     while (true) {
       if (not this->queue.pop_blocking(job)) {
