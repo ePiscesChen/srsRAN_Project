@@ -218,6 +218,10 @@ public:
   /// those tasks are not accounted for in the waiting.
   void wait_pending_tasks();
 
+  void thread_force_sleep(unsigned index);
+
+  void thread_force_wake(unsigned index);
+
 private:
   std::function<void()> create_pop_loop_task();
 

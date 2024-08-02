@@ -279,6 +279,20 @@ void task_worker_pool<QueuePolicy>::wait_pending_tasks()
   cvar_caller_return.wait(lock, [&counter_caller]() { return counter_caller == 0; });
 }
 
+template <concurrent_queue_policy QueuePolicy>
+void task_worker_pool<QueuePolicy>::thread_force_sleep(unsigned index)
+{
+  report_fatal_error_if_not(index < is_yield.size() && index >= 0, "Index of threads must be smaller than number of workers and greater than 0");
+  is_yield[index] = is_yield[index] & false;
+}
+
+template <concurrent_queue_policy QueuePolicy>
+void task_worker_pool<QueuePolicy>::thread_force_wake(unsigned index)
+{
+  report_fatal_error_if_not(index < is_yield.size() && index >= 0, "Index of threads must be smaller than number of workers and greater than 0");
+  is_yield[index] = is_yield[index] | true;
+}
+
 // Explicit specializations of the task_worker_pool.
 template class srsran::task_worker_pool<concurrent_queue_policy::lockfree_mpmc>;
 template class srsran::task_worker_pool<concurrent_queue_policy::locking_mpmc>;
