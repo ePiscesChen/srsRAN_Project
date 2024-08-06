@@ -27,6 +27,8 @@
 #include "srsran/adt/mutexed_mpmc_queue.h"
 #include "srsran/support/executors/detail/priority_task_queue.h"
 #include "srsran/support/executors/task_executor.h"
+#include <condition_variable>
+#include <mutex>
 
 namespace srsran {
 
@@ -64,6 +66,10 @@ public:
   std::string pool_name;
 
   std::vector<bool> is_yield;
+
+  std::vector<std::condition_variable*> cv;
+
+  std::vector<std::mutex*> mtx;
 
   // List of workers belonging to the worker pool.
   std::vector<unique_thread> worker_threads;
@@ -236,12 +242,16 @@ class task_worker_pool_executor final : public task_executor
 {
 public:
   task_worker_pool_executor() = default;
-  task_worker_pool_executor(task_worker_pool<QueuePolicy>& worker_pool_) : worker_pool(&worker_pool_) {}
+  task_worker_pool_executor(task_worker_pool<QueuePolicy>& worker_pool_) : worker_pool(&worker_pool_), current(std::chrono::system_clock::now()) {}
 
   SRSRAN_NODISCARD bool execute(unique_task task) override
   {
     // TODO: Shortpath if can_run_task_inline() returns true. This feature has been disabled while we don't correct the
     //  use of .execute in some places.
+    if(worker_pool->pool_name.find("up_phy_dl") != std::string::npos){
+      //fmt::print("{}\n", worker_pool->pool_name);
+      singal();
+    }
     return worker_pool->push_task(std::move(task));
   }
 
@@ -252,6 +262,43 @@ public:
 
 private:
   task_worker_pool<QueuePolicy>* worker_pool = nullptr;
+
+  void singal(){
+    auto now = std::chrono::system_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - current);
+
+    // 1. sleep_for()
+    // if(duration.count() > 10000){
+    //   this->worker_pool->is_yield[2] = !this->worker_pool->is_yield[2];
+    //   this->worker_pool->is_yield[3] = !this->worker_pool->is_yield[3];
+    //   fmt::print("yield state turned to {}\n", this->worker_pool->is_yield[2]);
+    //   current = now;
+    // }
+
+    // 2. condition_variable
+    // fmt::print("{}\n", duration.count());
+    if(duration.count() > 10000){
+      if(!this->worker_pool->is_yield[2]){
+        std::unique_lock <std::mutex> lck(*(this->worker_pool->mtx[2]));
+        std::unique_lock <std::mutex> lck1(*(this->worker_pool->mtx[3]));
+        this->worker_pool->thread_force_wake(2);
+        this->worker_pool->thread_force_wake(3);
+        fmt::print("yield state turned to true\n");
+        this->worker_pool->cv[2]->notify_all();
+        this->worker_pool->cv[3]->notify_all();
+      }
+      else{
+        //std::unique_lock <std::mutex> lck(*(this->worker_pool->mtx[2]));
+        //std::unique_lock <std::mutex> lck1(*(this->worker_pool->mtx[3]));
+        this->worker_pool->thread_force_sleep(2);
+        this->worker_pool->thread_force_sleep(3);
+        fmt::print("yield state turned to false\n");
+      }
+      current = now;
+    }
+  }
+
+  std::chrono::system_clock::time_point current;
 };
 
 /// \brief Create task executor for basic \c task_worker_pool.

@@ -25,6 +25,7 @@
 #include "srsran/instrumentation/traces/du_traces.h"
 #include "srsran/phy/support/resource_grid_mapper.h"
 #include "srsran/support/event_tracing.h"
+#include <chrono>
 
 using namespace srsran;
 
@@ -44,6 +45,11 @@ void pdsch_processor_concurrent_impl::process(resource_grid_mapper&             
 
   // Process DM-RS concurrently.
   auto dmrs_task = [this]() { process_dmrs(); };
+  //fmt::print("processing DM-RS tasks\n");
+  //std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds> tp = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now());
+  //time_t totalMs = tp.time_since_epoch().count();
+  //int micro = totalMs;
+  //fmt::print("{}\n", micro);
   if (!executor.execute(dmrs_task)) {
     dmrs_task();
   }
@@ -250,6 +256,9 @@ void pdsch_processor_concurrent_impl::fork_cb_batches()
 
   // Set number of codeblock batches.
   cb_batch_counter = nof_cb_batches;
+  //fmt::print("number of CB is: {}\n", nof_cb);
+  //fmt::print("number of CB batches is: {}\n", nof_cb_batches);
+  //fmt::print("the CB batches size is: {}\n", cb_batch_size);
 
   for (unsigned i_cb_batch = 0, i_cb = 0; i_cb_batch != nof_cb_batches; ++i_cb_batch, i_cb += cb_batch_size) {
     // Limit batch size for the last batch.
@@ -316,12 +325,14 @@ void pdsch_processor_concurrent_impl::fork_cb_batches()
 
     // Try to execute task asynchronously.
     bool successful = false;
+    //fmt::print("processing codeblock tasks\n");
     if (nof_cb_batches != 0) {
       successful = executor.execute(async_task);
     }
 
     // Execute task locally if it was not enqueued.
     if (!successful) {
+      fmt::print("processing codeblock tasks locally\n");
       async_task();
     }
 
