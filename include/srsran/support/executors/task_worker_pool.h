@@ -279,23 +279,28 @@ private:
     // fmt::print("{}\n", duration.count());
     if(duration.count() > 10000){
       if(!this->worker_pool->is_yield[2]){
-        std::unique_lock <std::mutex> lck(*(this->worker_pool->mtx[2]));
-        std::unique_lock <std::mutex> lck1(*(this->worker_pool->mtx[3]));
-        this->worker_pool->thread_force_wake(2);
-        this->worker_pool->thread_force_wake(3);
-        fmt::print("yield state turned to true\n");
-        this->worker_pool->cv[2]->notify_all();
-        this->worker_pool->cv[3]->notify_all();
+        this->thread_force_wake(2);
+        this->thread_force_wake(3);
       }
       else{
         //std::unique_lock <std::mutex> lck(*(this->worker_pool->mtx[2]));
         //std::unique_lock <std::mutex> lck1(*(this->worker_pool->mtx[3]));
-        this->worker_pool->thread_force_sleep(2);
-        this->worker_pool->thread_force_sleep(3);
+        this->thread_force_sleep(2);
+        this->thread_force_sleep(3);
         fmt::print("yield state turned to false\n");
       }
       current = now;
     }
+  }
+
+  void thread_force_wake(int index){
+    std::unique_lock <std::mutex> lck(*(this->worker_pool->mtx[index]));
+    this->worker_pool->thread_force_wake(index);
+    this->worker_pool->cv[index]->notify_all();
+  }
+
+  void thread_force_sleep(int index){
+    this->worker_pool->thread_force_sleep(index);
   }
 
   std::chrono::system_clock::time_point current;
