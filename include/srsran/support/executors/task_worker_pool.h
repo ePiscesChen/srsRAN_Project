@@ -205,7 +205,13 @@ public:
   /// return false.
   /// \param task Task to be run in the thread pool.
   /// \return True if task was successfully enqueued to be processed. False, if task queue is full.
-  SRSRAN_NODISCARD bool push_task(unique_task task) { return this->queue.try_push(std::move(task)); }
+  SRSRAN_NODISCARD bool push_task(unique_task task) {
+    if(this->pool_name.find("up_phy_dl") != std::string::npos){
+      task.set_in_queue_time(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    }
+    bool flag = this->queue.try_push(std::move(task));
+    return flag;
+  }
 
   /// \brief Push a new task to be processed by the worker pool. If the task queue is full, blocks.
   /// \param task Task to be run in the thread pool.

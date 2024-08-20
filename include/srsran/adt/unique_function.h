@@ -155,7 +155,11 @@ public:
     ptr      = static_cast<void*>(new FunT{std::forward<T>(function)});
   }
 
-  unique_function(unique_function&& other) noexcept : oper_ptr(other.oper_ptr)
+  unique_function(unique_function&& other) noexcept
+    : oper_ptr(other.oper_ptr),
+      in_queue_time(other.in_queue_time), // 转移 in_queue_time
+      processing_time(other.processing_time), // 转移 processing_time
+      end_processing_time(other.end_processing_time) // 转移 end_processing_time
   {
     other.oper_ptr = &empty_table;
     oper_ptr->move(&other.buffer, &buffer);
@@ -165,10 +169,15 @@ public:
 
   unique_function& operator=(unique_function&& other) noexcept
   {
-    oper_ptr->dtor(&buffer);
-    oper_ptr       = other.oper_ptr;
-    other.oper_ptr = &empty_table;
-    oper_ptr->move(&other.buffer, &buffer);
+    if (this != &other) {
+      oper_ptr->dtor(&buffer);
+      oper_ptr = other.oper_ptr;
+      in_queue_time = other.in_queue_time; // 转移 in_queue_time
+      processing_time = other.processing_time; // 转移 processing_time
+      end_processing_time = other.end_processing_time; // 转移 end_processing_time
+      other.oper_ptr = &empty_table;
+      oper_ptr->move(&other.buffer, &buffer);
+    }
     return *this;
   }
 
@@ -178,12 +187,22 @@ public:
   bool is_empty() const noexcept { return oper_ptr == &empty_table; }
   bool is_in_small_buffer() const noexcept { return oper_ptr->is_in_small_buffer(); }
 
+  long get_in_queue_time() { return this->in_queue_time; }
+  long get_processing_time() { return this->processing_time; }
+  long get_end_processing_time() { return this->end_processing_time; }
+  void set_in_queue_time(long _in_queue_time) { this->in_queue_time = _in_queue_time; }
+  void set_processing_time(long _processing_time) { this->processing_time = _processing_time; }
+  void set_end_processing_time(long _end_processing_time) { this->end_processing_time = _end_processing_time; }
+
 private:
   union {
     mutable storage_t buffer;
     void*             ptr;
   };
   const oper_table_t* oper_ptr;
+  long in_queue_time = 0;
+  long processing_time = 0;
+  long end_processing_time = 0;
 };
 
 template <typename R, typename... Args, size_t Capacity, bool ForbidAlloc>

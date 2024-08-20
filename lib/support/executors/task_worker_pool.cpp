@@ -221,27 +221,22 @@ std::function<void()> task_worker_pool<QueuePolicy>::create_pop_loop_task()
     // fmt::print("Pool name:{} - ID in pop loop task is {}\n", this->pool_name, index);
     unique_task job;
     while (true) {
-      if(index > 2 &&  this->pool_name.find("up_phy_dl") != std::string::npos){
-        fmt::print("thread {} is sleeping, yield state is {}.\n", index, this->is_yield[index - 1]);
-      }
-
-      // 1. sleep for
-      //while(!is_yield[index - 1]){
-      //  std::this_thread::sleep_for(std::chrono::microseconds(100));
-      //}
-
-      // 2. condition_variable
       while(!is_yield[index - 1]){
         cv[index - 1]->wait(lck);
       }
 
-      if(index > 2 &&  this->pool_name.find("up_phy_dl") != std::string::npos){
-        fmt::print("thread {} is waking, yield state is {}.\n", index, this->is_yield[index - 1]);
-      }
       if (not this->queue.pop_blocking(job)) {
         break;
       }
+      if(this->pool_name.find("up_phy_dl") != std::string::npos){
+        job.set_processing_time(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+        fmt::print("wait time is {}\n", job.get_processing_time() - job.get_in_queue_time());
+      }
       job();
+      if(this->pool_name.find("up_phy_dl") != std::string::npos){
+        job.set_end_processing_time(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+        fmt::print("execution time is {}\n", job.get_end_processing_time() - job.get_processing_time());
+      }
     }
   };
 
