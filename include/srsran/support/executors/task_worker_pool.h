@@ -29,6 +29,10 @@
 #include "srsran/support/executors/task_executor.h"
 #include <condition_variable>
 #include <mutex>
+#include <fstream>
+#include <ctime>
+#include <iomanip>
+#include <iostream>
 
 namespace srsran {
 
@@ -196,18 +200,25 @@ public:
     detail::base_task_queue<QueuePolicy>(qsize_, wait_sleep_time),
     detail::base_worker_pool(nof_workers_, std::move(worker_pool_name), create_pop_loop_task(), prio, cpu_masks)
   {
-    //fmt::print("actual worker of {} is {}, yield buffer is {}\n", worker_pool_name, actual_workers, is_yield.size());
-    //fmt::print("\n ==================== \n task_worker_pool <{}> is being created with sleep time ={}\n ==================== \n", worker_pool_name, std::chrono::duration_cast<std::chrono::microseconds>(wait_sleep_time).count());
+    if(this->pool_name.find("up_phy_dl") != std::string::npos){
+      dl_logfile_stream.open("dl_result.txt", std::ios::out);
+    }
+    else if(this->pool_name.find("pusch") != std::string::npos){
+      pusch_logfile_stream.open("pusch_result.txt", std::ios::out);
+    }
   }
   ~task_worker_pool();
+
+  bool check_poolname() { return this->pool_name.find("up_phy_dl") != std::string::npos || this->pool_name.find("pusch") != std::string::npos; }
 
   /// \brief Push a new task to be processed by the worker pool. If the task queue is full, it skips the task and
   /// return false.
   /// \param task Task to be run in the thread pool.
   /// \return True if task was successfully enqueued to be processed. False, if task queue is full.
   SRSRAN_NODISCARD bool push_task(unique_task task) {
-    if(this->pool_name.find("up_phy_dl") != std::string::npos){
-      task.set_in_queue_time(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    if(check_poolname()){
+      auto now = std::chrono::system_clock::now();
+      task.set_in_queue_time(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count());
     }
     bool flag = this->queue.try_push(std::move(task));
     return flag;
@@ -233,6 +244,9 @@ public:
   void thread_force_sleep(unsigned index);
 
   void thread_force_wake(unsigned index);
+
+  std::fstream dl_logfile_stream;
+  std::fstream pusch_logfile_stream;
 
 private:
   std::function<void()> create_pop_loop_task();
@@ -273,24 +287,12 @@ private:
     auto now = std::chrono::system_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - current);
 
-    // 1. sleep_for()
-    // if(duration.count() > 10000){
-    //   this->worker_pool->is_yield[2] = !this->worker_pool->is_yield[2];
-    //   this->worker_pool->is_yield[3] = !this->worker_pool->is_yield[3];
-    //   fmt::print("yield state turned to {}\n", this->worker_pool->is_yield[2]);
-    //   current = now;
-    // }
-
-    // 2. condition_variable
-    // fmt::print("{}\n", duration.count());
     if(duration.count() > 10000){
       if(!this->worker_pool->is_yield[2]){
         this->thread_force_wake(2);
         this->thread_force_wake(3);
       }
       else{
-        //std::unique_lock <std::mutex> lck(*(this->worker_pool->mtx[2]));
-        //std::unique_lock <std::mutex> lck1(*(this->worker_pool->mtx[3]));
         this->thread_force_sleep(2);
         this->thread_force_sleep(3);
         fmt::print("yield state turned to false\n");

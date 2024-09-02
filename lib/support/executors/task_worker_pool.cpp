@@ -44,10 +44,9 @@ detail::base_worker_pool::base_worker_pool(unsigned                             
 
   unsigned actual_workers = nof_workers_ / 2 ? nof_workers_ / 2 : 1;
   for(unsigned i = 0; i < nof_workers_; i++){
-    is_yield.push_back(!(i >= actual_workers && (worker_pool_name.find("up_phy_dl") != std::string::npos|| worker_pool_name.find("pusch") != std::string::npos)));
+    is_yield.push_back(!(i >= actual_workers && (worker_pool_name.find("up_phy_dl") != std::string::npos || worker_pool_name.find("pusch") != std::string::npos)));
     cv.emplace_back(new std::condition_variable());
     mtx.emplace_back(new std::mutex());
-    //fmt::print("yield flag of {}#{} is {}\n", worker_pool_name, i, is_yield[i]);
   }
   // Task dispatched to workers of the pool.
   for (unsigned i = 0; i != nof_workers_; ++i) {
@@ -62,21 +61,6 @@ detail::base_worker_pool::base_worker_pool(unsigned                             
     }
   }
 }
-
-//   unsigned int i = this->get_id();
-//   while(i < nof_workers_) {
-//     // this->update_id();
-//     if (cpu_masks.empty()) {
-//       worker_threads.emplace_back(fmt::format("{}#{}", worker_pool_name, i), prio, run_tasks_job);
-//     } else {
-//       // Check whether a single mask for all workers should be used.
-//       os_sched_affinity_bitmask cpu_mask = (cpu_masks.size() == 1) ? cpu_masks[0] : cpu_masks[i];
-//       worker_threads.emplace_back(fmt::format("{}#{}", worker_pool_name, i), prio, cpu_mask, run_tasks_job);
-//       fmt::print("\nworking thread {}#{} is being emplaced\n", worker_pool_name, i);
-//     }
-//     i = this->get_id();
-//   }
-// }
 
 bool detail::base_worker_pool::is_in_thread_pool() const
 {
@@ -228,14 +212,25 @@ std::function<void()> task_worker_pool<QueuePolicy>::create_pop_loop_task()
       if (not this->queue.pop_blocking(job)) {
         break;
       }
-      if(this->pool_name.find("up_phy_dl") != std::string::npos){
-        job.set_processing_time(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-        fmt::print("wait time is {}\n", job.get_processing_time() - job.get_in_queue_time());
+      if(check_poolname()){
+        auto now = std::chrono::system_clock::now();
+        job.set_processing_time(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count());
       }
       job();
-      if(this->pool_name.find("up_phy_dl") != std::string::npos){
-        job.set_end_processing_time(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-        fmt::print("execution time is {}\n", job.get_end_processing_time() - job.get_processing_time());
+      if(check_poolname()){
+        auto now = std::chrono::system_clock::now();
+        auto t = std::chrono::system_clock::to_time_t(now);
+        job.set_end_processing_time(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count());
+        if(this->pool_name.find("up_phy_dl") != std::string::npos){
+          dl_logfile_stream << std::put_time(std::localtime(&t), "%Y-%m-%d %H.%M.%S") << " " << "task finished execution, ";
+          dl_logfile_stream << "wait time is " << job.get_processing_time() - job.get_in_queue_time() << "us, ";
+          dl_logfile_stream << "execute time is " << job.get_end_processing_time() - job.get_processing_time() << "us" << std::endl;
+        }
+        else{
+          pusch_logfile_stream << std::put_time(std::localtime(&t), "%Y-%m-%d %H.%M.%S") << " " << "task finished execution, ";
+          pusch_logfile_stream << "wait time is " << job.get_processing_time() - job.get_in_queue_time() << "us, ";
+          pusch_logfile_stream << "execute time is " << job.get_end_processing_time() - job.get_processing_time() << "us" << std::endl;
+        }        
       }
     }
   };
