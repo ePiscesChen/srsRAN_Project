@@ -127,7 +127,7 @@ du_high_impl::du_high_impl(const du_high_configuration& config_) :
                                     *cfg.mac_p,
                                     cfg.sched_cfg,
                                     cfg.sched_ue_metrics_notifier ? *cfg.sched_ue_metrics_notifier : *metrics_notifier},
-                         cfg.test_cfg);
+                                    cfg.test_cfg);
   f1ap       = create_f1ap(*cfg.f1c_client,
                      adapters->f1_to_du_notifier,
                      cfg.exec_mapper->du_control_executor(),

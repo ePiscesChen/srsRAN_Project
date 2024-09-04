@@ -25,6 +25,7 @@
 #include "srsran/instrumentation/traces/du_traces.h"
 #include "srsran/phy/support/resource_grid_mapper.h"
 #include "srsran/support/event_tracing.h"
+#include <chrono>
 
 using namespace srsran;
 
@@ -316,12 +317,14 @@ void pdsch_processor_concurrent_impl::fork_cb_batches()
 
     // Try to execute task asynchronously.
     bool successful = false;
+    //fmt::print("processing codeblock tasks\n");
     if (nof_cb_batches != 0) {
       successful = executor.execute(async_task);
     }
 
     // Execute task locally if it was not enqueued.
     if (!successful) {
+      fmt::print("processing codeblock tasks locally\n");
       async_task();
     }
 

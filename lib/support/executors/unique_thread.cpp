@@ -159,6 +159,7 @@ std::thread unique_thread::make_thread(const std::string&               name,
   // Launch thread.
   return std::thread([name, prio, cpu_mask, callable = std::move(callable)]() {
     std::string fixed_name = name;
+    //fmt::print("ID in make thread is {}\n", fixed_name);
 
     // Truncate the thread name if it exceeds the maximum length.
     static const unsigned MAX_THREADNAME_LEN = 15;

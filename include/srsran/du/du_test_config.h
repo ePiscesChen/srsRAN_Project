@@ -41,7 +41,13 @@ struct du_test_config {
     unsigned           i_1_1;
     optional<unsigned> i_1_3;
     unsigned           i_2;
-    unsigned           buffer_size;
+    std::string        working_mode;
+    std::string        path;
+    double             static_buffer_size;
+    unsigned           min_buffer_size;
+    unsigned           max_buffer_size;
+    unsigned           buffer_step;
+    unsigned           buffer_interval;
   };
 
   /// \brief Creation of a phantom UE for testing purposes.

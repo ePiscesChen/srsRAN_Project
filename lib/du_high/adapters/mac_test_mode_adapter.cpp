@@ -56,22 +56,13 @@ static expected<mac_rx_data_indication> create_test_pdu_with_bsr(slot_point sl_r
       sl_rx, to_du_cell_index(0), mac_rx_pdu_list{mac_rx_pdu{test_rnti, 0, harq_id, std::move(buf.value())}}};
 }
 
-class test_ue_buffer_size_container
-{
-public:
-  test_ue_buffer_size_container(unsigned _buffersize){
-    buffersize = _buffersize;
-  }
-  unsigned buffersize;
-};
-
 /// \brief Adapter for the MAC SDU TX builder that auto fills the DL buffer state update.
 class test_ue_mac_sdu_tx_builder_adapter : public mac_sdu_tx_builder
 {
   static constexpr unsigned TX_SDU_MAX_SIZE = 5000;
 
 public:
-  test_ue_mac_sdu_tx_builder_adapter(unsigned _buffersize) : container(test_ue_buffer_size_container(_buffersize))
+  test_ue_mac_sdu_tx_builder_adapter(std::shared_ptr<test_mode_buffer_size> container) : buffer_size_container(container)
   {
     report_fatal_error_if_not(tx_sdu.append(std::vector<uint8_t>(TX_SDU_MAX_SIZE, 0)),
                               "Unable to allocate byte buffer");
@@ -83,11 +74,11 @@ public:
     return 0;
   }
 
-  unsigned on_buffer_state_update() override { return container.buffersize; }
+  unsigned on_buffer_state_update() override { return buffer_size_container->get_buffer_size();}
 
 private:
   byte_buffer tx_sdu = {};
-  test_ue_buffer_size_container container;
+  std::shared_ptr<test_mode_buffer_size> buffer_size_container;
 };
 
 mac_test_mode_cell_adapter::mac_test_mode_cell_adapter(const srs_du::du_test_config::test_ue_config& test_ue_cfg_,
@@ -536,7 +527,15 @@ mac_test_mode_adapter::mac_test_mode_adapter(const srs_du::du_test_config::test_
   phy_notifier(std::make_unique<phy_test_mode_adapter>(phy_notifier_)),
   ue_info_mgr(test_ue.rnti, test_ue.nof_ues)
 {
-  fmt::print("test_ue.buffer_size={}\n",test_ue.buffer_size);
+  if(test_ue.working_mode == "static"){
+    buffer_size_container = std::make_shared<static_test_mode>(test_ue.static_buffer_size);
+  }
+  else if (test_ue.working_mode == "range"){
+    buffer_size_container = std::make_shared<range_test_mode>(test_ue);
+  }
+  else if (test_ue.working_mode == "trace"){
+    buffer_size_container = std::make_shared<trace_test_mode>(test_ue.path);
+  }
 }
 
 mac_test_mode_adapter::~mac_test_mode_adapter() = default;
@@ -554,7 +553,7 @@ void mac_test_mode_adapter::add_cell(const mac_cell_creation_request& cell_cfg)
   // Create the cell in the MAC test mode.
   auto func_dl_bs_push = [this](rnti_t rnti) {
     get_ue_control_info_handler().handle_dl_buffer_state_update(
-        {ue_info_mgr.rnti_to_du_ue_idx(rnti), lcid_t::LCID_SRB1, test_ue.buffer_size});
+        {ue_info_mgr.rnti_to_du_ue_idx(rnti), lcid_t::LCID_SRB1, unsigned(buffer_size_container->get_buffer_size())});
   };
   auto new_cell =
       std::make_unique<mac_test_mode_cell_adapter>(test_ue,
@@ -600,7 +599,7 @@ void mac_test_mode_adapter::handle_dl_buffer_state_update(const mac_dl_buffer_st
   mac_dl_buffer_state_indication_message dl_bs_copy = dl_bs;
   if (ue_info_mgr.is_test_ue(dl_bs.ue_index) and test_ue.pdsch_active and dl_bs.lcid != LCID_SRB0) {
     // It is the test UE. Set a positive DL buffer state if PDSCH is set to "activated".
-    dl_bs_copy.bs = test_ue.buffer_size;
+    dl_bs_copy.bs = this->buffer_size_container->get_buffer_size();
     fmt::print("dl_bs_copy.bs={}\n",dl_bs_copy.bs);
   }
   mac_adapted->get_ue_control_info_handler().handle_dl_buffer_state_update(dl_bs_copy);
@@ -609,8 +608,8 @@ void mac_test_mode_adapter::handle_dl_buffer_state_update(const mac_dl_buffer_st
 std::vector<mac_logical_channel_config>
 mac_test_mode_adapter::adapt_bearers(const std::vector<mac_logical_channel_config>& orig_bearers)
 {
-  static test_ue_mac_sdu_tx_builder_adapter dl_adapter = test_ue_mac_sdu_tx_builder_adapter(test_ue.buffer_size);
 
+  static test_ue_mac_sdu_tx_builder_adapter dl_adapter = test_ue_mac_sdu_tx_builder_adapter(buffer_size_container);
   auto test_ue_adapted_bearers = orig_bearers;
   for (auto& bearer : test_ue_adapted_bearers) {
     if (bearer.lcid != lcid_t::LCID_SRB0) {
@@ -619,7 +618,6 @@ mac_test_mode_adapter::adapt_bearers(const std::vector<mac_logical_channel_confi
       }
     }
   }
-
   return test_ue_adapted_bearers;
 }
 

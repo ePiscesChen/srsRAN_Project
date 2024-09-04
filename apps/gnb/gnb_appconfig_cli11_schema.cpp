@@ -1661,6 +1661,13 @@ static void configure_cli11_qos_args(CLI::App& app, qos_appconfig& qos_params)
 
 static void configure_cli11_test_ue_mode_args(CLI::App& app, test_mode_ue_appconfig& test_params)
 {
+  auto mode_check = [](const std::string& value) -> std::string {
+    if (value == "static" || value == "range" || value == "trace") {
+      return {};
+    }
+    return "Invalid mode. Accepted values [static,range,trace]";
+  };
+  
   app.add_option("--rnti", test_params.rnti, "C-RNTI (0x0 if not configured)")
       ->capture_default_str()
       ->check(CLI::Range(to_value((rnti_t::INVALID_RNTI)), to_value(rnti_t::MAX_CRNTI)));
@@ -1701,10 +1708,45 @@ static void configure_cli11_test_ue_mode_args(CLI::App& app, test_mode_ue_appcon
          "Precoder Matrix codebook index \"i_2\" to be forwarded to test UE, in the case of more than 2 antennas.")
       ->capture_default_str()
       ->check(CLI::Range(0, 3));
+  app.add_option<std::string>(
+          "--working_mode",
+          test_params.working_mode,
+          "working mode")
+      ->capture_default_str()
+      ->check(mode_check);
+  app.add_option<std::string>(
+          "--path",
+          test_params.path,
+          "path")
+      ->capture_default_str();
   app.add_option(
-          "--buffer_size",
-          test_params.buffer_size,
-          "used to control DL buffer size")
+          "--static_buffer_size",
+          test_params.static_buffer_size,
+          "buffer size in static mode, default value: 10000000")
+      ->capture_default_str()
+      ->check(CLI::Range(0,10000000));
+  app.add_option(
+          "--min_buffer_size",
+          test_params.min_buffer_size,
+          "the mininum value of DL buffer size")
+      ->capture_default_str()
+      ->check(CLI::Range(0,10000000));
+  app.add_option(
+          "--max_buffer_size",
+          test_params.max_buffer_size,
+          "the maxinum value of DL buffer size")
+      ->capture_default_str()
+      ->check(CLI::Range(0,10000000));
+  app.add_option(
+          "--buffer_step",
+          test_params.buffer_step,
+          "the increment of DL buffer size")
+      ->capture_default_str()
+      ->check(CLI::Range(0,10000000));
+  app.add_option(
+          "--buffer_interval",
+          test_params.buffer_interval,
+          "the mininum value of DL buffer size")
       ->capture_default_str()
       ->check(CLI::Range(0,10000000));
 }
