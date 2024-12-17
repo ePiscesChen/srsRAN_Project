@@ -45,8 +45,9 @@ pdu_session_manager_impl::pdu_session_manager_impl(ue_index_t                   
                                                    timer_factory                        ue_ctrl_timer_factory_,
                                                    f1u_cu_up_gateway&                   f1u_gw_,
                                                    gtpu_teid_pool&                      f1u_teid_allocator_,
-                                                   gtpu_tunnel_tx_upper_layer_notifier& gtpu_tx_notifier_,
-                                                   gtpu_demux_ctrl&                     gtpu_rx_demux_,
+                                                   // gtpu_tunnel_tx_upper_layer_notifier& gtpu_tx_notifier_,
+                                                   // gtpu_demux_ctrl&                     gtpu_rx_demux_,
+                                                   ngu_tnl_pdu_session&                 upf_session_,
                                                    task_executor&                       ue_dl_exec_,
                                                    task_executor&                       ue_ul_exec_,
                                                    task_executor&                       ue_ctrl_exec_,
@@ -62,9 +63,10 @@ pdu_session_manager_impl::pdu_session_manager_impl(ue_index_t                   
   ue_dl_timer_factory(ue_dl_timer_factory_),
   ue_ul_timer_factory(ue_ul_timer_factory_),
   ue_ctrl_timer_factory(ue_ctrl_timer_factory_),
-  gtpu_tx_notifier(gtpu_tx_notifier_),
+  // gtpu_tx_notifier(gtpu_tx_notifier_),
   f1u_teid_allocator(f1u_teid_allocator_),
-  gtpu_rx_demux(gtpu_rx_demux_),
+  // gtpu_rx_demux(gtpu_rx_demux_),
+  upf_session(upf_session_),
   ue_dl_exec(ue_dl_exec_),
   ue_ul_exec(ue_ul_exec_),
   ue_ctrl_exec(ue_ctrl_exec_),
@@ -259,7 +261,8 @@ pdu_session_setup_result pdu_session_manager_impl::setup_pdu_session(const e1ap_
     return pdu_session_result;
   }
 
-  pdu_sessions.emplace(session.pdu_session_id, std::make_unique<pdu_session>(session, gtpu_rx_demux));
+  // pdu_sessions.emplace(session.pdu_session_id, std::make_unique<pdu_session>(session, gtpu_rx_demux));
+  pdu_sessions.emplace(session.pdu_session_id, std::make_unique<pdu_session>(session));
   std::unique_ptr<pdu_session>& new_session    = pdu_sessions.at(session.pdu_session_id);
   const auto&                   ul_tunnel_info = new_session->ul_tunnel_info;
 
@@ -279,31 +282,37 @@ pdu_session_setup_result pdu_session_manager_impl::setup_pdu_session(const e1ap_
   sdap_entity_creation_message sdap_msg = {ue_index, session.pdu_session_id, &new_session->sdap_to_gtpu_adapter};
   new_session->sdap                     = create_sdap(sdap_msg);
 
-  // Create GTPU entity
-  gtpu_tunnel_ngu_creation_message msg = {};
-  msg.ue_index                         = ue_index;
-  msg.cfg.tx.peer_teid                 = int_to_gtpu_teid(ul_tunnel_info.gtp_teid.value());
-  msg.cfg.tx.peer_addr                 = ul_tunnel_info.tp_address.to_string();
-  msg.cfg.tx.peer_port                 = net_config.upf_port;
-  msg.cfg.rx.local_teid                = new_session->local_teid;
-  msg.cfg.rx.t_reordering              = n3_config.gtpu_reordering_timer;
-  msg.rx_lower                         = &new_session->gtpu_to_sdap_adapter;
-  msg.tx_upper                         = &gtpu_tx_notifier;
-  msg.gtpu_pcap                        = &gtpu_pcap;
-  msg.ue_dl_timer_factory              = ue_dl_timer_factory;
-  new_session->gtpu                    = create_gtpu_tunnel_ngu(msg);
+  // // Create GTPU entity
+  // gtpu_tunnel_ngu_creation_message msg = {};
+  // msg.ue_index                         = ue_index;
+  // msg.cfg.tx.peer_teid                 = int_to_gtpu_teid(ul_tunnel_info.gtp_teid.value());
+  // msg.cfg.tx.peer_addr                 = ul_tunnel_info.tp_address.to_string();
+  // msg.cfg.tx.peer_port                 = net_config.upf_port;
+  // msg.cfg.rx.local_teid                = new_session->local_teid;
+  // msg.cfg.rx.t_reordering              = n3_config.gtpu_reordering_timer;
+  // msg.rx_lower                         = &new_session->gtpu_to_sdap_adapter;
+  // msg.tx_upper                         = &gtpu_tx_notifier;
+  // msg.gtpu_pcap                        = &gtpu_pcap;
+  // msg.ue_dl_timer_factory              = ue_dl_timer_factory;
+  // new_session->gtpu                    = create_gtpu_tunnel_ngu(msg);
 
-  // Connect adapters
-  new_session->sdap_to_gtpu_adapter.connect_gtpu(*new_session->gtpu->get_tx_lower_layer_interface());
-  new_session->gtpu_to_sdap_adapter.connect_sdap(new_session->sdap->get_sdap_tx_sdu_handler());
+  // // Connect adapters
+  // new_session->sdap_to_gtpu_adapter.connect_gtpu(*new_session->gtpu->get_tx_lower_layer_interface());
+  // new_session->gtpu_to_sdap_adapter.connect_sdap(new_session->sdap->get_sdap_tx_sdu_handler());
+  upf_session.ngu_connect_sdap(new_session->sdap->get_sdap_tx_sdu_handler());
+  new_session->sdap_to_gtpu_adapter.add_peer_teid(int_to_gtpu_teid(ul_tunnel_info.gtp_teid.value()));
+  // new_session->sdap_to_gtpu_adapter.add_peer_sockaddr(ul_tunnel_info.tp_address.to_string(), net_config.upf_port);
+  new_session->sdap_to_gtpu_adapter.add_peer_sockaddr(ul_tunnel_info.tp_address.to_string(), 2152);
+  new_session->sdap_to_gtpu_adapter.connect_upf(upf_session);
+  new_session->sdap_to_gtpu_adapter.connect_dn(upf_session);
 
-  // Register tunnel at demux
-  if (!gtpu_rx_demux.add_tunnel(
-          new_session->local_teid, ue_dl_exec, new_session->gtpu->get_rx_upper_layer_interface())) {
-    logger.log_error(
-        "PDU Session {} cannot be created. TEID {} already exists", session.pdu_session_id, new_session->local_teid);
-    return pdu_session_result;
-  }
+  // // Register tunnel at demux
+  // if (!gtpu_rx_demux.add_tunnel(
+  //         new_session->local_teid, ue_dl_exec, new_session->gtpu->get_rx_upper_layer_interface())) {
+  //   logger.log_error(
+  //       "PDU Session {} cannot be created. TEID {} already exists", session.pdu_session_id, new_session->local_teid);
+  //   return pdu_session_result;
+  // }
 
   // Handle DRB setup
   for (const e1ap_drb_to_setup_item_ng_ran& drb_to_setup : session.drb_to_setup_list_ng_ran) {

@@ -31,6 +31,7 @@
 #include "srsran/gtpu/gtpu_demux.h"
 #include "srsran/gtpu/gtpu_teid_pool.h"
 #include "srsran/gtpu/gtpu_tunnel_tx.h"
+#include "srsran/gtpu/ngu_gateway.h"
 #include <chrono>
 #include <condition_variable>
 #include <list>

@@ -23,6 +23,8 @@
 #pragma once
 
 #include "srsran/adt/byte_buffer.h"
+#include "srsran/ran/cu_types.h"
+#include "srsran/sdap/sdap.h"
 
 struct sockaddr_storage;
 
@@ -62,7 +64,17 @@ public:
   /// \brief This callback is invoked on each received PDU.
   /// \param[in]  put Byte-buffer with new PDU.
   /// \param[in]  Source address
-  virtual void on_new_pdu(byte_buffer pdu, const sockaddr_storage& src_addr) = 0;
+  virtual void on_new_pdu(byte_buffer pdu, const sockaddr_storage& src_addr){
+    
+  }
+
+  virtual void on_new_pdu(byte_buffer pdu, qos_flow_id_t qos_flow_id){
+
+  }
+  virtual void connect_sdap(srs_cu_up::sdap_tx_sdu_handler& sdap_handler_){
+
+  }
+
 };
 
 /// \brief Interface to control common parameters to all

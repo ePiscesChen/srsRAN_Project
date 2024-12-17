@@ -41,8 +41,8 @@ protected:
 
     // create required objects
     security_info    = get_dummy_up_security_info();
-    gtpu_rx_demux    = std::make_unique<dummy_gtpu_demux_ctrl>();
-    gtpu_tx_notifier = std::make_unique<dummy_gtpu_network_gateway_adapter>();
+    // gtpu_rx_demux    = std::make_unique<dummy_gtpu_demux_ctrl>();
+    // gtpu_tx_notifier = std::make_unique<dummy_gtpu_network_gateway_adapter>();
     f1u_gw           = std::make_unique<dummy_f1u_gateway>(f1u_bearer);
     f1u_allocator    = std::make_unique<dummy_gtpu_teid_pool>();
 
@@ -66,8 +66,9 @@ protected:
                                                                  timers_factory,
                                                                  *f1u_gw,
                                                                  *f1u_allocator,
-                                                                 *gtpu_tx_notifier,
-                                                                 *gtpu_rx_demux,
+                                                                 //*gtpu_tx_notifier,
+                                                                 //*gtpu_rx_demux,
+                                                                 *ngu_session,
                                                                  teid_worker,
                                                                  teid_worker,
                                                                  teid_worker,
@@ -85,8 +86,9 @@ protected:
   manual_task_worker                                   worker{64};
   timer_factory                                        timers_factory{timers_manager, worker};
   unique_timer                                         ue_inactivity_timer;
-  std::unique_ptr<dummy_gtpu_demux_ctrl>               gtpu_rx_demux;
-  std::unique_ptr<gtpu_tunnel_tx_upper_layer_notifier> gtpu_tx_notifier;
+  // std::unique_ptr<dummy_gtpu_demux_ctrl>               gtpu_rx_demux;
+  // std::unique_ptr<gtpu_tunnel_tx_upper_layer_notifier> gtpu_tx_notifier;
+  std::unique_ptr<ngu_tnl_pdu_session>                 ngu_session;
   dummy_inner_f1u_bearer                               f1u_bearer;
   std::unique_ptr<dummy_f1u_gateway>                   f1u_gw;
   std::unique_ptr<dummy_gtpu_teid_pool>                f1u_allocator;

@@ -44,7 +44,12 @@ public:
   /// \brief handle_pdu Transmit a new PDU.
   /// \param pdu The PDU to be transmitted.
   /// \param dest_addr The destination address of that PDU.
-  virtual void handle_pdu(byte_buffer pdu, const sockaddr_storage& dest_addr) = 0;
+  virtual void handle_pdu(byte_buffer pdu, const sockaddr_storage& dest_addr){
+    
+  }
+  virtual void handle_upf_pdu(byte_buffer pdu, const sockaddr_storage& dest_addr){
+    
+  }
 };
 
 /// Interface to trigger bind/listen/connect operations on gateway socket.

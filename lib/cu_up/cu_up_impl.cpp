@@ -52,35 +52,36 @@ cu_up::cu_up(const cu_up_configuration& config_) : cfg(config_), main_ctrl_loop(
 
   /// > Create and connect upper layers
 
-  // Create GTP-U demux
-  gtpu_demux_creation_request demux_msg = {};
-  demux_msg.cfg.warn_on_drop            = cfg.n3_cfg.warn_on_drop;
-  demux_msg.gtpu_pcap                   = cfg.gtpu_pcap;
-  ngu_demux                             = create_gtpu_demux(demux_msg);
+  // // Create GTP-U demux
+  // gtpu_demux_creation_request demux_msg = {};
+  // demux_msg.cfg.warn_on_drop            = cfg.n3_cfg.warn_on_drop;
+  // demux_msg.gtpu_pcap                   = cfg.gtpu_pcap;
+  // ngu_demux                             = create_gtpu_demux(demux_msg);
 
   ctrl_exec_mapper = cfg.ue_exec_pool->create_ue_executor_mapper();
   report_error_if_not(ctrl_exec_mapper != nullptr, "Could not create CU-UP executor for control TEID");
 
-  // Create GTP-U echo and register it at demux
-  gtpu_echo_creation_message ngu_echo_msg = {};
-  ngu_echo_msg.gtpu_pcap                  = cfg.gtpu_pcap;
-  ngu_echo_msg.tx_upper                   = &gtpu_gw_adapter;
-  ngu_echo                                = create_gtpu_echo(ngu_echo_msg);
-  ngu_demux->add_tunnel(
-      GTPU_PATH_MANAGEMENT_TEID, ctrl_exec_mapper->dl_pdu_executor(), ngu_echo->get_rx_upper_layer_interface());
+  // // Create GTP-U echo and register it at demux
+  // gtpu_echo_creation_message ngu_echo_msg = {};
+  // ngu_echo_msg.gtpu_pcap                  = cfg.gtpu_pcap;
+  // ngu_echo_msg.tx_upper                   = &gtpu_gw_adapter;
+  // ngu_echo                                = create_gtpu_echo(ngu_echo_msg);
+  // ngu_demux->add_tunnel(
+  //     GTPU_PATH_MANAGEMENT_TEID, ctrl_exec_mapper->dl_pdu_executor(), ngu_echo->get_rx_upper_layer_interface());
 
-  // Connect GTP-U DEMUX to adapter.
-  gw_data_gtpu_demux_adapter.connect_gtpu_demux(*ngu_demux);
+  // // Connect GTP-U DEMUX to adapter.
+  // gw_data_gtpu_demux_adapter.connect_gtpu_demux(*ngu_demux);
 
-  // Establish new NG-U session and connect the instantiated session to the GTP-U DEMUX adapter, so that the latter
-  // is called when new NG-U DL PDUs are received.
-  ngu_session = cfg.ngu_gw->create(gw_data_gtpu_demux_adapter);
+  // // Establish new NG-U session and connect the instantiated session to the GTP-U DEMUX adapter, so that the latter
+  // // is called when new NG-U DL PDUs are received.
+  // ngu_session = cfg.ngu_gw->create(gw_data_gtpu_demux_adapter);
+  ngu_session = cfg.ngu_gw->create_upf(gw_data_sdap_adapter);
   if (ngu_session == nullptr) {
     report_error("Unable to allocate the required NG-U network resources");
   }
 
-  // Connect GTPU GW adapter to NG-U session in order to send UL PDUs.
-  gtpu_gw_adapter.connect_network_gateway(*ngu_session);
+  // // Connect GTPU GW adapter to NG-U session in order to send UL PDUs.
+  // gtpu_gw_adapter.connect_network_gateway(*ngu_session);
 
   // Create TEID allocator
   gtpu_allocator_creation_request f1u_alloc_msg = {};
@@ -99,8 +100,9 @@ cu_up::cu_up(const cu_up_configuration& config_) : cfg(config_), main_ctrl_loop(
                                         *e1ap,
                                         *cfg.timers,
                                         *cfg.f1u_gateway,
-                                        gtpu_gw_adapter,
-                                        *ngu_demux,
+                                        //gtpu_gw_adapter,
+                                        //*ngu_demux,
+                                        *ngu_session,
                                         *f1u_teid_allocator,
                                         *cfg.ue_exec_pool,
                                         *cfg.gtpu_pcap,

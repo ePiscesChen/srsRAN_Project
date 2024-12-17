@@ -69,7 +69,7 @@ public:
   bool e1ap_is_connected() override { return e1ap_connected; }
 
   // cu_up_ngu_interface
-  gtpu_demux_rx_upper_layer_interface& get_ngu_pdu_handler() override { return *ngu_demux; }
+  // gtpu_demux_rx_upper_layer_interface& get_ngu_pdu_handler() override { return *ngu_demux; }
 
 private:
   void on_statistics_report_timer_expired();
@@ -86,14 +86,15 @@ private:
   std::atomic<bool>                    e1ap_connected = {false};
   std::unique_ptr<e1ap_interface>      e1ap;
   std::unique_ptr<ngu_tnl_pdu_session> ngu_session;
-  std::unique_ptr<gtpu_demux>          ngu_demux;
-  std::unique_ptr<gtpu_echo>           ngu_echo;
+  // std::unique_ptr<gtpu_demux>          ngu_demux;
+  // std::unique_ptr<gtpu_echo>           ngu_echo;
   std::unique_ptr<gtpu_teid_pool>      f1u_teid_allocator;
   std::unique_ptr<ue_manager>          ue_mng;
 
   // Adapters
-  network_gateway_data_gtpu_demux_adapter gw_data_gtpu_demux_adapter;
-  gtpu_network_gateway_adapter            gtpu_gw_adapter;
+  // network_gateway_data_gtpu_demux_adapter gw_data_gtpu_demux_adapter;
+  network_gateway_data_sdap_adapter       gw_data_sdap_adapter;
+  // gtpu_network_gateway_adapter            gtpu_gw_adapter;
   e1ap_cu_up_adapter                      e1ap_cu_up_ev_notifier;
 
   std::mutex mutex;

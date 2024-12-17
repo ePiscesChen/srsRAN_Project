@@ -47,6 +47,10 @@ public:
   /// \return If a UDP link is being used, returns the respective bind port. If the connection is local, it returns
   /// nullopt.
   virtual optional<uint16_t> get_bind_port() = 0;
+  virtual void ngu_connect_sdap(sdap_tx_sdu_handler& sdap_handler_){
+
+  }
+  
 };
 
 /// \brief This class is called by the CU-UP to instantiate new NG-U TNL PDU sessions.
@@ -60,6 +64,9 @@ public:
   /// to the CU-UP.
   /// \return Returns a new instance of a NG-U TNL PDU session.
   virtual std::unique_ptr<ngu_tnl_pdu_session> create(network_gateway_data_notifier_with_src_addr& data_notifier) = 0;
+  virtual std::unique_ptr<ngu_tnl_pdu_session> create_upf(network_gateway_data_notifier_with_src_addr& data_notifier){
+    return nullptr;
+  }
 };
 
 /// Creates a factory of NG-U TNL sessions that handle the allocation of network resources for a UDP-based link.

@@ -41,8 +41,9 @@ public:
                       e1ap_control_message_handler&        e1ap_,
                       timer_manager&                       timers_,
                       f1u_cu_up_gateway&                   f1u_gw_,
-                      gtpu_tunnel_tx_upper_layer_notifier& gtpu_tx_notifier_,
-                      gtpu_demux_ctrl&                     gtpu_rx_demux_,
+                      // gtpu_tunnel_tx_upper_layer_notifier& gtpu_tx_notifier_,
+                      // gtpu_demux_ctrl&                     gtpu_rx_demux_,
+                      ngu_tnl_pdu_session&                 ngu_session_,
                       gtpu_teid_pool&                      f1u_teid_allocator_,
                       cu_up_executor_pool&                 exec_pool_,
                       dlt_pcap&                            gtpu_pcap_,
@@ -65,8 +66,9 @@ private:
   n3_interface_config&                 n3_config;
   e1ap_control_message_handler&        e1ap;
   f1u_cu_up_gateway&                   f1u_gw;
-  gtpu_tunnel_tx_upper_layer_notifier& gtpu_tx_notifier;
-  gtpu_demux_ctrl&                     gtpu_rx_demux;
+  // gtpu_tunnel_tx_upper_layer_notifier& gtpu_tx_notifier;
+  // gtpu_demux_ctrl&                     gtpu_rx_demux;
+  ngu_tnl_pdu_session&                 ngu_session;
   gtpu_teid_pool&                      f1u_teid_allocator;
   cu_up_executor_pool&                 exec_pool;
   dlt_pcap&                            gtpu_pcap;

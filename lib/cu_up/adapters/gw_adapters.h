@@ -47,5 +47,27 @@ private:
   gtpu_demux_rx_upper_layer_interface* gtpu_demux = nullptr;
 };
 
+/// Adapter between Network Gateway (Data) and SDAP
+class network_gateway_data_sdap_adapter : public srsran::network_gateway_data_notifier_with_src_addr
+{
+public:
+  network_gateway_data_sdap_adapter()           = default;
+  ~network_gateway_data_sdap_adapter() override = default;
+
+  void connect_sdap(sdap_tx_sdu_handler& sdap_handler_) override { 
+    sdap_handler = &sdap_handler_; 
+    std::cout << "GW CONNECT SDAP handler" << std::endl;
+  }
+
+  void on_new_pdu(byte_buffer sdu, qos_flow_id_t qos_flow_id) override
+  {
+    srsran_assert(sdap_handler != nullptr, "SDAP handler must not be nullptr");
+    sdap_handler->handle_sdu(std::move(sdu), qos_flow_id);
+  }
+
+private:
+  sdap_tx_sdu_handler* sdap_handler = nullptr;
+};
+
 } // namespace srs_cu_up
 } // namespace srsran

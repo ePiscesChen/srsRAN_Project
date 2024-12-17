@@ -45,6 +45,7 @@ public:
   {
     // pass through
     logger.log_debug("TX PDU. {} pdu_len={}", qfi, sdu.length());
+    logger.log_debug("TX PDU {}", sdu);
     pdu_notifier.on_new_pdu(std::move(sdu));
   }
 

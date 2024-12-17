@@ -82,7 +82,7 @@ public:
 
   /// \brief Get the NGu PDU handler interface.
   /// \return The NGu PDU handler interface.
-  virtual gtpu_demux_rx_upper_layer_interface& get_ngu_pdu_handler() = 0;
+  // virtual gtpu_demux_rx_upper_layer_interface& get_ngu_pdu_handler() = 0;
 };
 
 class cu_up_interface : public cu_up_e1ap_connection_notifier, public cu_up_e1ap_interface, public cu_up_ngu_interface

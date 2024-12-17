@@ -83,6 +83,8 @@ public:
 
     hdr.ext_list.push_back(ext);
 
+    // 判断是否为内生的流量(通过buf中提取ip地址)
+    // 如果为内生流量，删除write_ok(hdr添加到buf的前面)
     bool write_ok = gtpu_write_header(buf, hdr, logger);
 
     if (!write_ok) {

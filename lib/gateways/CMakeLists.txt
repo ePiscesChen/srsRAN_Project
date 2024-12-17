@@ -25,5 +25,7 @@ add_library(srsran_gateway
               udp_network_gateway_impl.cpp
               sctp_network_gateway_factory.cpp
               udp_network_gateway_factory.cpp
+              upf_gateway_impl.cpp
+              dn_gateway_impl.cpp
             )
 target_link_libraries(srsran_gateway srslog ${SCTP_LIBRARIES})

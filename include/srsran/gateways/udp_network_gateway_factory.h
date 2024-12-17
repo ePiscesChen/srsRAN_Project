@@ -24,6 +24,7 @@
 
 #include "udp_network_gateway.h"
 #include "srsran/support/executors/task_executor.h"
+#include "srsran/sdap/sdap.h"
 #include <memory>
 #include <utility>
 
@@ -41,7 +42,23 @@ struct udp_network_gateway_creation_message {
   task_executor&                               io_tx_executor;
 };
 
+struct upf_gateway_creation_message {
+  upf_gateway_creation_message(udp_network_gateway_config                   config_,
+                               network_gateway_data_notifier_with_src_addr& data_notifier_,
+                               task_executor&                               io_tx_executor_) :
+    config(std::move(config_)), 
+    data_notifier(data_notifier_),
+    io_tx_executor(io_tx_executor_)
+    
+  {
+  }
+  udp_network_gateway_config                   config;
+  network_gateway_data_notifier_with_src_addr& data_notifier;
+  task_executor&                               io_tx_executor;
+};
+
 /// Creates an instance of an network gateway
 std::unique_ptr<udp_network_gateway> create_udp_network_gateway(udp_network_gateway_creation_message msg);
+std::unique_ptr<udp_network_gateway> create_upf_gateway(upf_gateway_creation_message msg);
 
 } // namespace srsran

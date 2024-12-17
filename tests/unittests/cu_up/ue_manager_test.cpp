@@ -56,8 +56,9 @@ protected:
                                           *e1ap,
                                           timers,
                                           *f1u_gw,
-                                          *gtpu_tx_notifier,
-                                          *gtpu_rx_demux,
+                                          // *gtpu_tx_notifier,
+                                          // *gtpu_rx_demux,
+                                          *ngu_session,
                                           *gtpu_f1u_allocator,
                                           *cu_up_exec_mapper,
                                           gtpu_pcap,
@@ -73,6 +74,7 @@ protected:
   std::unique_ptr<gtpu_demux_ctrl>                     gtpu_rx_demux;
   std::unique_ptr<gtpu_teid_pool>                      gtpu_f1u_allocator;
   std::unique_ptr<gtpu_tunnel_tx_upper_layer_notifier> gtpu_tx_notifier;
+  std::unique_ptr<ngu_tnl_pdu_session>                 ngu_session;
   std::unique_ptr<e1ap_control_message_handler>        e1ap;
   std::unique_ptr<cu_up_executor_pool>                 cu_up_exec_mapper;
   dummy_inner_f1u_bearer                               f1u_bearer;

@@ -127,6 +127,7 @@ protected:
       return;
     }
 
+    // gtpu_extract_msg()是去除了GTP-U头部的函数，返回SDU
     uint16_t    sn     = pdu.hdr.seq_number;
     byte_buffer rx_sdu = gtpu_extract_msg(std::move(pdu)); // header is invalidated after extraction
 
